@@ -1,10 +1,4 @@
 import { Farmer, Investor, TeamMember, CompanyInfo, FaqItem, SuccessStory } from '../types';
-import {
-    generateTeamMembers,
-    generateSuccessStories,
-    generateFaqs,
-    processContactInquiry as processInquiryWithGemini
-} from './geminiApi';
 
 const DB_KEY = 'aquaGrowDb';
 
@@ -63,20 +57,29 @@ const saveDb = (db: Database): void => {
     localStorage.setItem(DB_KEY, JSON.stringify(db));
 };
 
-// --- Gemini-powered functions for dynamic public content ---
+// --- Serverless function callers for dynamic public content ---
+
+async function fetchFromFunction(functionName: string, options?: RequestInit) {
+    const response = await fetch(`/.netlify/functions/${functionName}`, options);
+    if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({ error: 'Failed to fetch' }));
+        console.error(`Error from ${functionName}:`, errorBody);
+        throw new Error(`Failed to fetch from ${functionName}. Status: ${response.status}`);
+    }
+    return response.json();
+}
 
 export const getGeneratedTeamMembers = async (): Promise<Omit<TeamMember, 'id'>[]> => {
-    const members = await generateTeamMembers();
-    return members.map(member => ({
+    const members = await fetchFromFunction('generateTeamMembers');
+    return members.map((member: any) => ({
         ...member,
         imageUrl: getRandomImage(member.name)
     }));
 };
 
 export const getGeneratedSuccessStories = async (): Promise<(Omit<SuccessStory, 'farmerName'> & { name: string })[]> => {
-    const stories = await generateSuccessStories();
-    // The Gemini schema uses 'name', but our type uses 'farmerName'. Let's adapt.
-    return stories.map(story => ({
+    const stories = await fetchFromFunction('generateSuccessStories');
+    return stories.map((story: any) => ({
         ...story,
         name: story.name, // Ensure the 'name' property is there for the component
         imageUrl: getRandomImage(story.name, 600, 400)
@@ -84,11 +87,15 @@ export const getGeneratedSuccessStories = async (): Promise<(Omit<SuccessStory, 
 };
 
 export const getGeneratedFaqs = async (): Promise<FaqItem[]> => {
-    return await generateFaqs();
+    return fetchFromFunction('generateFaqs');
 };
 
 export const processContactInquiry = async (formData: { name: string, email: string, subject: string, message: string }) => {
-    return await processInquiryWithGemini(formData);
+    return fetchFromFunction('processContactInquiry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+    });
 };
 
 
