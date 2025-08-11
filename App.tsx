@@ -8,6 +8,7 @@ import FarmersPage from './pages/FarmersPage';
 import ImpactPage from './pages/ImpactPage';
 import PartnersPage from './pages/PartnersPage';
 import ContactPage from './pages/ContactPage';
+import ChangelogPage from './pages/ChangelogPage';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import { AuthProvider } from './context/AuthContext';
@@ -34,6 +35,7 @@ const PublicApp: React.FC = () => (
             <Route path="/impact" element={<ImpactPage />} />
             <Route path="/partners" element={<PartnersPage />} />
             <Route path="/contact" element={<ContactPage />} />
+            <Route path="/changelog" element={<ChangelogPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
     </Layout>

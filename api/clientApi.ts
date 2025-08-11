@@ -9,6 +9,122 @@ interface Database {
     companyInfo: CompanyInfo;
 }
 
+// Initial database state embedded directly into the code to prevent fetch errors on deployment.
+const INITIAL_DB: Database = {
+  "farmers": [
+    {
+      "id": "F001",
+      "name": "Joseph Mutisya",
+      "location": "Makueni County",
+      "phone": "+254 712 345 678",
+      "status": "Active",
+      "joinDate": "2023-05-12"
+    },
+    {
+      "id": "F002",
+      "name": "Esther Nthenya",
+      "location": "Machakos County",
+      "phone": "+254 723 456 789",
+      "status": "Active",
+      "joinDate": "2023-06-01"
+    },
+    {
+      "id": "F003",
+      "name": "David Kimani",
+      "location": "Kiambu County",
+      "phone": "+254 734 567 890",
+      "status": "Pending",
+      "joinDate": "2024-03-10"
+    },
+    {
+      "id": "F004",
+      "name": "Grace Akinyi",
+      "location": "Kisumu County",
+      "phone": "+254 745 678 901",
+      "status": "Rejected",
+      "joinDate": "2024-02-20"
+    }
+  ],
+  "investors": [
+    {
+      "id": "I001",
+      "name": "Impact Capital Fund",
+      "email": "contact@impactcap.com",
+      "phone": "+254 756 789 012",
+      "investmentAmount": 500000,
+      "status": "Active"
+    },
+    {
+      "id": "I002",
+      "name": "Green Ventures LLC",
+      "email": "info@greenventures.com",
+      "phone": "+254 767 890 123",
+      "investmentAmount": 250000,
+      "status": "Active"
+    },
+    {
+      "id": "I003",
+      "name": "Angel Investor One",
+      "email": "angel@email.com",
+      "phone": "+254 778 901 234",
+      "investmentAmount": 50000,
+      "status": "Pending"
+    },
+    {
+      "id": "I004",
+      "name": "Future Growth Partners",
+      "email": "hello@fgp.com",
+      "phone": "+254 789 012 345",
+      "investmentAmount": 750000,
+      "status": "Closed"
+    }
+  ],
+  "teamMembers": [
+    {
+      "id": "T001",
+      "name": "Dr. Aisha Kipruto",
+      "role": "Founder & CEO",
+      "bio": "With a PhD in Agricultural Science and 15 years of field experience, Aisha is dedicated to bridging the gap between technology and small-scale farming.",
+      "imageUrl": "https://picsum.photos/400/400?image=1"
+    },
+    {
+      "id": "T002",
+      "name": "David Odhiambo",
+      "role": "Head of Operations",
+      "bio": "David ensures our projects run smoothly. His expertise in logistics and community engagement is vital to our success on the ground.",
+      "imageUrl": "https://picsum.photos/400/400?image=2"
+    },
+    {
+      "id": "T003",
+      "name": "Grace Wanjiku",
+      "role": "Lead Agronomist",
+      "bio": "Grace works hand-in-hand with our farmers, providing the training and support they need to maximize their yields and soil health.",
+      "imageUrl": "https://picsum.photos/400/400?image=3"
+    },
+    {
+      "id": "T004",
+      "name": "Ben Carter",
+      "role": "Director of Partnerships",
+      "bio": "Ben focuses on building relationships with investors and partners who share our vision for a sustainable and prosperous future for Kenya.",
+      "imageUrl": "https://picsum.photos/400/400?image=4"
+    }
+  ],
+  "companyInfo": {
+    "address": [
+      "AquaGrow Innovations HQ",
+      "Nairobi, Kenya"
+    ],
+    "phone": "+254 123 456 789",
+    "email": "info@aquagrow.co.ke",
+    "socials": {
+      "x": "#",
+      "facebook": "#",
+      "linkedin": "#"
+    }
+  }
+};
+
+
 // Function to get a random image from picsum.photos to make generated content more visually appealing
 const getRandomImage = (seed: string, width = 400, height = 400) => {
     // Simple hash function to get a numeric seed from a string
@@ -21,21 +137,13 @@ const getRandomImage = (seed: string, width = 400, height = 400) => {
 const getDb = async (): Promise<Database> => {
     const dbString = localStorage.getItem(DB_KEY);
 
-    // If localStorage is empty, fetch initial data for the first time.
+    // If localStorage is empty, use the embedded initial data.
     if (!dbString) {
-        console.log("No local database found, initializing from server.");
-        try {
-            const response = await fetch('/server/db.json');
-            if (!response.ok) {
-                throw new Error(`Network response was not ok: ${response.statusText}`);
-            }
-            const initialDb: Database = await response.json();
-            localStorage.setItem(DB_KEY, JSON.stringify(initialDb));
-            return initialDb;
-        } catch (error) {
-            console.error("Could not initialize database from file. App may not function correctly.", error);
-            return { farmers: [], investors: [], teamMembers: [], companyInfo: { address: [], email: '', phone: '', socials: { facebook: '', linkedin: '', x: ''}} };
-        }
+        console.log("No local database found, initializing from embedded data.");
+        // Deep copy to prevent mutation of the initial constant
+        const initialDb = JSON.parse(JSON.stringify(INITIAL_DB));
+        localStorage.setItem(DB_KEY, JSON.stringify(initialDb));
+        return initialDb;
     }
 
     try {
@@ -46,9 +154,11 @@ const getDb = async (): Promise<Database> => {
             throw new Error("Data in localStorage is malformed.");
         }
     } catch (e) {
-        console.error("Error reading data from localStorage. This is a critical error.", e);
-        localStorage.setItem(`${DB_KEY}_corrupted_backup_${Date.now()}`, dbString);
-        throw new Error("Your saved data is corrupted and cannot be loaded. A backup has been created. To continue, clear the application's storage.");
+        console.error("Error reading data from localStorage. Restoring from embedded backup.", e);
+        // If local storage is corrupted, reset it with the initial data.
+        const initialDb = JSON.parse(JSON.stringify(INITIAL_DB));
+        localStorage.setItem(DB_KEY, JSON.stringify(initialDb));
+        return initialDb;
     }
 };
 
